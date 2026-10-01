@@ -23,6 +23,52 @@ import sys
 import time
 
 import requests
+
+
+# ----------------------------------------------------------------------------
+# Self-heal: python-telegram-bot < 21.7 با Python 3.13 کرش می‌کند.
+# اگر نسخه‌ی قدیمی نصب بود، خودکار نسخه‌ی سازگار نصب و ربات ری‌استارت می‌شود.
+# ----------------------------------------------------------------------------
+def _ensure_ptb():
+    import subprocess
+    from importlib import metadata
+
+    def _ver():
+        try:
+            v = metadata.version("python-telegram-bot")
+            return tuple(int(x) for x in re.findall(r"\d+", v)[:2])
+        except Exception:
+            return (0, 0)
+
+    if _ver() >= (21, 7):
+        return
+    print("Upgrading python-telegram-bot ...", flush=True)
+    cmds = [
+        [sys.executable, "-m", "pip", "install", "--no-cache-dir", "python-telegram-bot==21.10"],
+        ["uv", "pip", "install", "--python", sys.executable, "python-telegram-bot==21.10"],
+    ]
+    ok = False
+    for cmd in cmds:
+        try:
+            if subprocess.call(cmd) == 0:
+                ok = True
+                break
+        except Exception:
+            pass
+        if cmd[0] == sys.executable:
+            try:
+                subprocess.call([sys.executable, "-m", "ensurepip", "--upgrade"])
+                if subprocess.call(cmd) == 0:
+                    ok = True
+                    break
+            except Exception:
+                pass
+    if ok:
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+    print("Failed to upgrade python-telegram-bot", flush=True)
+
+
+_ensure_ptb()
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -42,10 +88,10 @@ from telegram.ext import (
 # ----------------------------------------------------------------------------
 # تنظیمات
 # ----------------------------------------------------------------------------
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8609846864:AAF5okOjPUPo1LrG--mhq93J-hEfxZPgNs8").strip()
-FORCE_CHANNEL = os.getenv("FORCE_CHANNEL", "@RIXPANEL").strip() or "@RIXPANEL"
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
+FORCE_CHANNEL = os.getenv("FORCE_CHANNEL", "@RIX_PANEL").strip() or "@RIX_PANEL"
 try:
-    OWNER_ID = int(os.getenv("OWNER_ID", "7025776524").strip())
+    OWNER_ID = int(os.getenv("OWNER_ID", "0").strip())
 except ValueError:
     OWNER_ID = 0
 
